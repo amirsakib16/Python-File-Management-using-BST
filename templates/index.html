@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f4f4f4;
+        }
+
+        header {
+            background-color: #333;
+            color: white;
+            width: 100%;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .input-group input,
+        .input-group button {
+            padding: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .files-container {
+            background: white;
+            border-radius: 5px;
+            padding: 1rem;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #ccc;
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .file-item button {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 0.3rem 0.5rem;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        .file-item button:hover {
+            background: #c0392b;
+        }
+
+        .buttons-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .buttons-group button {
+            padding: 0.7rem;
+            font-size: 1rem;
+            cursor: pointer;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+
+        .buttons-group button:hover {
+            background: #2980b9;
+        }
+
+        @media (max-width: 768px) {
+            .input-group {
+                flex-direction: column;
+            }
+        }
+
+        .custom-alert {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 2rem;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .custom-alert h3 {
+            margin: 0;
+            margin-bottom: 1rem;
+            color: #333;
+        }
+
+        .custom-alert button {
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .custom-alert button:hover {
+            background-color: #2980b9;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>File Management System using Binary Search Tree</h1>
+    </header>
+    <div class="container">
+        
+        <div class="input-group">
+            <input type="text" id="create-name" placeholder="File Name">
+            <input type="text" id="create-size" placeholder="File Size (e.g., 10MB)">
+            <input type="text" id="create-format" placeholder="File Format (e.g., txt)">
+            <button onclick="createFile()">Create File</button>
+        </div>
+
+        
+        <div class="input-group">
+            <input type="text" id="search-name" placeholder="Search by Name">
+            <button onclick="searchByName()">Search</button>
+        </div>
+
+        
+        <div class="input-group">
+            <input type="text" id="search-format" placeholder="Search by Format">
+            <button onclick="searchByFormat()">Search</button>
+        </div>
+
+        
+        <div class="input-group">
+            <input type="text" id="rename-old" placeholder="Old Name">
+            <input type="text" id="rename-new" placeholder="New Name">
+            <button onclick="renameFile()">Rename File</button>
+        </div>
+
+        <!-- Sorting Buttons -->
+        <div class="buttons-group">
+            <button onclick="sortFiles('name', 'asc')">Sort by Name (Asc)</button>
+            <button onclick="sortFiles('name', 'desc')">Sort by Name (Desc)</button>
+            <button onclick="sortFilesS('size', 'asc')">Sort by Size (Asc)</button>
+            <button onclick="sortFilesS('size', 'desc')">Sort by Size (Desc)</button>
+        </div>
+
+        <!-- Files Display -->
+        <div class="files-container" id="files-container">
+            <h3>Files</h3>
+            <div id="file-list"></div>
+        </div>
+
+        <div class="overlay" id="overlay"></div>
+        <div class="custom-alert" id="custom-alert">
+            <h3 id="alert-message">Message</h3>
+            <button onclick="closeCustomAlert()">OK</button>
+        </div>
+
+    </div>
+
+    <script>
+        function showCustomAlert(message) {
+            const overlay = document.getElementById('overlay');
+            const alertBox = document.getElementById('custom-alert');
+            const alertMessage = document.getElementById('alert-message');
+
+            alertMessage.textContent = message;
+            overlay.style.display = 'block';
+            alertBox.style.display = 'flex';
+        }
+
+        function closeCustomAlert() {
+            const overlay = document.getElementById('overlay');
+            const alertBox = document.getElementById('custom-alert');
+
+            overlay.style.display = 'none';
+            alertBox.style.display = 'none';
+        }
+
+        function createFile() {
+            const name = document.getElementById('create-name').value;
+            const size = document.getElementById('create-size').value;
+            const format = document.getElementById('create-format').value;
+
+            fetch(`/create`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name, size, format })
+            }).then(res => res.json()).then(data => {
+                showCustomAlert(data.message);
+                fetchFiles();
+                document.getElementById('create-name').value = "";
+                document.getElementById('create-size').value = "";
+                document.getElementById('create-format').value = "";
+            });
+        }
+
+        function fetchFiles() {
+            fetch(`/files`).then(res => res.json()).then(data => {
+                const fileList = document.getElementById('file-list');
+                fileList.innerHTML = '';
+                data.forEach(file => {
+                    const div = document.createElement('div');
+                    div.className = 'file-item';
+                    div.innerHTML = `
+                        <span>${file.name} - ${file.size} - ${file.format}</span>
+                        <button onclick="deleteFile('${file.name}')">Delete</button>
+                    `;
+                    fileList.appendChild(div);
+                });
+            });
+        }
+
+        function searchByName() {
+            const name = document.getElementById('search-name').value;
+            fetch(`/search/name?name=${name}`).then(res => res.json()).then(data => {
+                showCustomAlert(`Found: ${data.name} - ${data.size} - ${data.format}`);
+                document.getElementById('search-name').value = "";
+            });
+        }
+
+        function searchByFormat() {
+            const format = document.getElementById('search-format').value;
+            fetch(`/search/format?format=${format}`).then(res => res.json()).then(data => {
+                showCustomAlert(`Found Files: ${data.map(file => file.name).join(', ')}`);
+                document.getElementById('search-format').value = "";
+            });
+        }
+
+        function renameFile() {
+            const oldName = document.getElementById('rename-old').value.trim();
+            const newName = document.getElementById('rename-new').value.trim();
+
+            if (!oldName || !newName) {
+                showCustomAlert('Both old and new file names are required.');
+                return;
+            }
+
+            fetch('/rename', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ oldName, newName }),
+            })
+                .then((res) => res.json())
+                .then((data) => {
+                    showCustomAlert(data.message);
+                    fetchFiles();
+                    document.getElementById('rename-old').value = "";
+                    document.getElementById('rename-new').value = "";
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                    showCustomAlert('Failed to rename file.');
+
+                });
+
+        }
+
+
+        function deleteFile(name) {
+            fetch(`/delete`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name })
+            }).then(res => res.json()).then(data => {
+                showCustomAlert(data.message);
+                fetchFiles();
+            });
+        }
+        function sortFiles(type, order) {
+            const endpoint = `/sort/${type}/${order}`;
+            fetch(endpoint)
+                .then(res => res.json())
+                .then(data => {
+                    const fileList = document.getElementById('file-list');
+                    fileList.innerHTML = '';
+                    data.forEach(file => {
+                        const div = document.createElement('div');
+                        div.className = 'file-item';
+                        div.innerHTML = `
+                    <span>${file.name} - ${file.size} - ${file.format}</span>
+                    <button onclick="deleteFile('${file.name}')">Delete</button>
+                `;
+                        fileList.appendChild(div);
+                    });
+                });
+        }
+
+        fetchFiles();
+        function sortFilesS(type, order) {
+            const endpoint = `/sort/${type}/${order}`;
+            fetch(endpoint)
+                .then(res => res.json())
+                .then(data => {
+                    // Clear the current file list
+                    const fileList = document.getElementById('file-list');
+                    fileList.innerHTML = '';
+
+                    // Add sorted files to the list
+                    data.forEach(file => {
+                        const div = document.createElement('div');
+                        div.className = 'file-item';
+                        div.innerHTML = `
+                    <span>${file.name} - ${file.size} - ${file.format}</span>
+                    <button onclick="deleteFile('${file.name}')">Delete</button>
+                `;
+                        fileList.appendChild(div);
+                    });
+                })
+                .catch(error => {
+                    console.error("Error fetching sorted files:", error);
+                });
+        }
+
+
+        fetchFiles();
+    </script>
+</body>
+
+</html>
